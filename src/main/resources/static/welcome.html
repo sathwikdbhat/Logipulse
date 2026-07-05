@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>VSST | AI Control Tower</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:     #09091a; --card: #111130; --border: #1a1a3a;
+            --blue:   #4fc3f7; --purple: #a78bfa; --green: #10b981;
+            --text:   #e2e8f0; --muted: #64748b;
+        }
+
+        body.light-theme {
+            --bg: #f0f4f8; --card: #ffffff; --border: #dde3ea;
+            --blue: #0284c7; --purple: #7c3aed; --green: #059669;
+            --text: #1a202c; --muted: #718096;
+        }
+
+        html, body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif;
+            overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+
+        /* NAV */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; height: 56px;
+            background: rgba(9,9,26,0.92); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px; z-index: 100;
+        }
+        body.light-theme nav { background: rgba(240,244,248,0.95); }
+
+        .nav-brand { display: flex; align-items: center; gap: 10px;
+            text-decoration: none; }
+        .nav-brand:hover { text-decoration: none; }
+
+        .nav-actions { display: flex; gap: 10px; align-items: center; }
+
+        .btn-nav {
+            padding: 8px 20px; border-radius: 8px; font-size: 13px;
+            font-weight: 600; cursor: pointer; text-decoration: none;
+            font-family: inherit; transition: all 0.2s;
+        }
+
+        .btn-nav-outline {
+            background: transparent; border: 1.5px solid var(--border);
+            color: var(--text);
+        }
+        .btn-nav-outline:hover { border-color: var(--blue); color: var(--blue); text-decoration: none; }
+
+        .btn-nav-primary {
+            background: var(--blue); border: none; color: #09091a; font-weight: 700;
+        }
+        .btn-nav-primary:hover { opacity: 0.85; text-decoration: none; }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; padding: 100px 24px 60px;
+            position: relative; overflow: hidden;
+        }
+
+        .hero::before {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(79,195,247,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(79,195,247,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridDrift 25s linear infinite;
+        }
+        @keyframes gridDrift { 0%{background-position:0 0} 100%{background-position:60px 60px} }
+
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px);
+            pointer-events: none; opacity: 0.15; }
+        .blob-1 { width:500px;height:500px; background:radial-gradient(circle,#4fc3f7,transparent);
+            top:-100px;left:-100px; animation:blobFloat 8s ease-in-out infinite; }
+        .blob-2 { width:400px;height:400px; background:radial-gradient(circle,#a78bfa,transparent);
+            bottom:-80px;right:-80px; animation:blobFloat 10s ease-in-out infinite reverse; }
+        @keyframes blobFloat { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,20px)} }
+
+        h1 {
+            font-size: clamp(32px, 6vw, 68px); font-weight: 800;
+            line-height: 1.1; margin-bottom: 20px; position: relative;
+        }
+        .h1-line1 { color: var(--text); display: block; }
+        .h1-line2 {
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; display: block;
+        }
+
+        .hero-sub {
+            font-size: clamp(14px, 2vw, 17px); color: var(--muted);
+            max-width: 560px; line-height: 1.7; margin-bottom: 36px; position: relative;
+        }
+
+        .hero-cta {
+            display: flex; gap: 14px; flex-wrap: wrap;
+            justify-content: center; margin-bottom: 52px; position: relative;
+        }
+
+        .btn-hero-primary {
+            padding: 14px 36px; background: var(--blue); color: #09091a; border: none;
+            border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer;
+            text-decoration: none; font-family: inherit; transition: all 0.2s;
+            box-shadow: 0 8px 24px rgba(79,195,247,0.3);
+        }
+        .btn-hero-primary:hover { background:#81d4fa; box-shadow:0 12px 32px rgba(79,195,247,0.45);
+            transform:translateY(-2px); text-decoration:none; }
+
+        .btn-hero-outline {
+            padding: 14px 36px; background: transparent; color: var(--text);
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            text-decoration: none; font-family: inherit; transition: all 0.2s;
+        }
+        .btn-hero-outline:hover { border-color:var(--blue); color:var(--blue); text-decoration:none; }
+
+        .stats-strip {
+            display: flex; gap: 36px; flex-wrap: wrap;
+            justify-content: center; position: relative;
+        }
+        .stat-item { text-align: center; }
+        .stat-num {
+            font-size: 30px; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; display: block;
+        }
+        .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase;
+            letter-spacing: 1px; margin-top: 4px; }
+
+        /* FEATURES */
+        .section { padding: 70px 24px; max-width: 1200px; margin: 0 auto; }
+        .section-label { text-align:center; font-size:11px; font-weight:600;
+            color:var(--blue); text-transform:uppercase; letter-spacing:2px;
+            margin-bottom:12px; }
+        .section-title { text-align:center; font-size:clamp(22px,4vw,36px);
+            font-weight:700; margin-bottom:44px; line-height:1.25; color:var(--text); }
+
+        .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+
+        .feature-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 24px; transition: all 0.25s;
+            position: relative; overflow: hidden;
+        }
+        .feature-card::before {
+            content:''; position:absolute; top:0;left:0;right:0;
+            height:2px; border-radius:2px 2px 0 0;
+        }
+        .feature-card.c-blue::before   { background: var(--blue); }
+        .feature-card.c-purple::before { background: var(--purple); }
+        .feature-card.c-green::before  { background: var(--green); }
+        .feature-card.c-yellow::before { background: #f59e0b; }
+        .feature-card.c-red::before    { background: #ef4444; }
+        .feature-card.c-teal::before   { background: #06b6d4; }
+
+        .feature-card:hover {
+            border-color: rgba(79,195,247,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+        }
+        body.light-theme .feature-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+
+        .feature-icon  { font-size: 30px; margin-bottom: 12px; }
+        .feature-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .feature-desc  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+        /* TECH STACK */
+        .tech-section {
+            background: var(--card); border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border); padding: 56px 24px; text-align: center;
+        }
+        .tech-pills { display:flex; flex-wrap:wrap; justify-content:center; gap:9px; margin-top:26px; }
+        .tech-pill {
+            padding: 6px 16px;
+            background: rgba(79,195,247,0.06); border: 1px solid rgba(79,195,247,0.15);
+            border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--blue);
+            font-family: 'JetBrains Mono', monospace; transition: all 0.2s;
+        }
+        .tech-pill:hover { background: rgba(79,195,247,0.14); }
+
+        /* FOOTER */
+        footer {
+            padding: 28px; text-align: center; color: var(--muted);
+            font-size: 12px; border-top: 1px solid var(--border);
+        }
+        footer a { color: var(--blue); text-decoration: none; font-weight: 600; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 900px) { .features-grid { grid-template-columns:1fr 1fr; } }
+        @media (max-width: 600px) {
+            .features-grid { grid-template-columns:1fr; }
+            nav { padding: 0 16px; }
+            .hero { padding: 80px 16px 40px; }
+            .stats-strip { gap: 22px; }
+        }
+
+        /* Globe background */
+        .globe-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(700px, 95vw);
+            height: min(700px, 95vw);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.38;
+        }
+
+        .globe-bg canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Ensure all hero content is above globe */
+        .hero > *:not(.blob-1):not(.blob-2):not(.globe-bg) {
+            position: relative;
+            z-index: 2;
+        }
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/welcome.html" class="nav-brand">
+        <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
+            <path d="M8 12 L24 22 L8 32 Z" fill="rgba(79,195,247,0.2)" stroke="#4fc3f7" stroke-width="2"/>
+            <path d="M20 12 L36 22 L20 32 Z" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="2"/>
+            <circle cx="8" cy="12" r="2.5" fill="#4fc3f7"/>
+            <circle cx="8" cy="32" r="2.5" fill="#4fc3f7"/>
+            <circle cx="36" cy="22" r="2.5" fill="#10b981"/>
+        </svg>
+        <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 18px; font-weight: 700; color: var(--blue); line-height: 1.1;">VSST</span>
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Virtual Supply chain & Smart Transit</span>
+        </div>
+    </a>
+    <div class="nav-actions">
+        <a href="/login.html"    class="btn-nav btn-nav-outline">Login</a>
+        <a href="/register.html" class="btn-nav btn-nav-primary">Create Account</a>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="globe-bg" aria-hidden="true">
+        <canvas id="globeCanvas"></canvas>
+    </div>
+
+    <h1>
+        <span class="h1-line1">Autonomous AI Control Tower</span>
+        <span class="h1-line2">for Resilient Supply Chains</span>
+    </h1>
+    <p class="hero-sub">
+        Preemptively detect, flag, and resolve transit disruptions before they cascade
+        into broader delays. Real-time tracking, AI rerouting, and live weather intelligence
+        across all India domestic routes.
+    </p>
+    <div class="hero-cta">
+        <a href="/login.html"    class="btn-hero-primary">&#128640; Launch Dashboard</a>
+        <a href="/register.html" class="btn-hero-outline">&#43; Create Account</a>
+    </div>
+    <div class="stats-strip">
+        <div class="stat-item"><span class="stat-num">Real&#8209;Time</span><span class="stat-lbl">Tracking</span></div>
+        <div class="stat-item"><span class="stat-num">Quick</span><span class="stat-lbl">Disruption Detection</span></div>
+        <div class="stat-item"><span class="stat-num">2</span><span class="stat-lbl">Role Levels</span></div>
+        <div class="stat-item"><span class="stat-num">70+</span><span class="stat-lbl">Indian Cities</span></div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-label">Platform Capabilities</div>
+    <h2 class="section-title">Everything Your Supply Chain Operations Need</h2>
+    <div class="features-grid">
+        <div class="feature-card c-blue">
+            <div class="feature-icon">&#128666;</div>
+            <div class="feature-title">Real-Time Shipment Tracking</div>
+            <div class="feature-desc">Live GPS positions on an interactive map. Route lines, animated markers, and speed calculations for every active shipment.</div>
+        </div>
+        <div class="feature-card c-purple">
+            <div class="feature-icon">&#9889;</div>
+            <div class="feature-title">Automated Disruption Response</div>
+            <div class="feature-desc">Real-time weather and news monitoring detects route disruptions automatically. Affected shipments are rerouted onto an alternate corridor within seconds — no manual steps required.</div>
+        </div>
+        <div class="feature-card c-green">
+            <div class="feature-icon">&#127777;</div>
+            <div class="feature-title">Live Weather Intelligence</div>
+            <div class="feature-desc">OpenWeatherMap API fetches real-time weather at each shipment's GPS location. Hazardous conditions trigger automatic risk alerts.</div>
+        </div>
+        <div class="feature-card c-yellow">
+            <div class="feature-icon">&#128272;</div>
+            <div class="feature-title">Role-Based Access Control</div>
+            <div class="feature-desc">Admin, Operator, and Driver roles each get a tailored dashboard with strict data isolation — every user only sees the shipments and fleet assigned to them.</div>
+        </div>
+        <div class="feature-card c-red">
+            <div class="feature-icon">&#128200;</div>
+            <div class="feature-title">Advanced Analytics Dashboard</div>
+            <div class="feature-desc">On-time rates, delay trends, cargo breakdown, driver performance tables, and a live disruption heatmap of India.</div>
+        </div>
+        <div class="feature-card c-teal">
+            <div class="feature-icon">&#128295;</div>
+            <div class="feature-title">Fleet Management</div>
+            <div class="feature-desc">Register vehicles, assign drivers, and track availability status in real time across your entire fleet.</div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <p>&#128666; <strong>VSST</strong> — Autonomous AI Control Tower for Resilient Supply Chains</p>
+    <p style="margin-top:8px;"><a href="/login.html">Login</a> &nbsp;&bull;&nbsp; <a href="/register.html">Create Account</a></p>
+</footer>
+
+<script>
+    (function startGlobe() {
+        var canvas = document.getElementById('globeCanvas');
+        if (!canvas) {
+            // Retry in case DOM not ready
+            setTimeout(startGlobe, 200);
+            return;
+        }
+
+        var ctx  = canvas.getContext('2d');
+        var SIZE = 600;
+        canvas.width  = SIZE;
+        canvas.height = SIZE;
+
+        var CX = SIZE / 2, CY = SIZE / 2, R = SIZE * 0.44;
+        var rotY = 0;
+
+        // City coordinates [lat, lng]
+        var cities = [
+            [28.6, 77.2], [19.1, 72.9], [13.0, 77.6], [22.6, 88.4],
+            [13.1, 80.3], [17.4, 78.5], [23.0, 72.6], [26.9, 75.8],
+            [51.5, -0.1], [48.9, 2.4], [40.7, -74.0], [35.7, 139.7],
+            [31.2, 121.5], [-33.9, 151.2], [55.8, 37.6], [25.2, 55.3],
+            [1.3, 103.8], [37.6, 127.0], [-23.5, -46.6], [30.0, 31.2],
+            [6.5, 3.4], [-26.2, 28.1], [19.4, -99.1], [43.7, -79.4]
+        ];
+
+        // Convert lat/lng to unit sphere 3D
+        function toSphere(lat, lng) {
+            var phi   = (90 - lat)  * Math.PI / 180;
+            var theta = (lng + 180) * Math.PI / 180;
+            return {
+                x: -Math.sin(phi) * Math.cos(theta),
+                y:  Math.cos(phi),
+                z:  Math.sin(phi) * Math.sin(theta)
+            };
+        }
+
+        // Rotate around Y axis only (slow spin)
+        function rotate(p) {
+            var x1 = p.x * Math.cos(rotY) + p.z * Math.sin(rotY);
+            var z1 = -p.x * Math.sin(rotY) + p.z * Math.cos(rotY);
+            return { x: x1, y: p.y, z: z1 };
+        }
+
+        function project(p) {
+            var rp = rotate(p);
+            return { x: CX + rp.x * R, y: CY - rp.y * R, z: rp.z };
+        }
+
+        var nodes = cities.map(function (c) { return toSphere(c[0], c[1]); });
+
+        // Build edges (connect nearby cities)
+        var edges = [];
+        for (var i = 0; i < nodes.length; i++) {
+            for (var j = i + 1; j < nodes.length; j++) {
+                if (Math.random() < 0.2) edges.push([i, j]);
+            }
+        }
+
+        // Animated data packets
+        var packets = [];
+        edges.forEach(function (e) {
+            if (Math.random() < 0.55) {
+                packets.push({
+                    edge:  e,
+                    t:     Math.random(),
+                    speed: 0.004 + Math.random() * 0.005,
+                    color: Math.random() < 0.5 ? '#f59e0b' : '#4fc3f7'
+                });
+            }
+        });
+
+        function draw() {
+            ctx.clearRect(0, 0, SIZE, SIZE);
+
+            // Background glow
+            var grd = ctx.createRadialGradient(CX, CY, R * 0.1, CX, CY, R);
+            grd.addColorStop(0, 'rgba(10,20,50,0.85)');
+            grd.addColorStop(1, 'rgba(5,8,20,0.95)');
+            ctx.beginPath();
+            ctx.arc(CX, CY, R, 0, Math.PI * 2);
+            ctx.fillStyle = grd;
+            ctx.fill();
+
+            // Grid lines (latitude)
+            for (var lat = -75; lat <= 75; lat += 15) {
+                ctx.beginPath();
+                var first = true;
+                for (var lng = -180; lng <= 180; lng += 4) {
+                    var p3  = toSphere(lat, lng);
+                    var rp  = rotate(p3);
+                    if (rp.z > -0.05) {
+                        var sx = CX + rp.x * R, sy = CY - rp.y * R;
+                        if (first) { ctx.moveTo(sx, sy); first = false; }
+                        else        ctx.lineTo(sx, sy);
+                    } else { first = true; }
+                }
+                ctx.strokeStyle = 'rgba(79,195,247,0.07)';
+                ctx.lineWidth   = 0.6;
+                ctx.stroke();
+            }
+
+            // Grid lines (longitude)
+            for (var lng2 = -180; lng2 < 180; lng2 += 15) {
+                ctx.beginPath();
+                first = true;
+                for (var lat2 = -90; lat2 <= 90; lat2 += 4) {
+                    var p3b = toSphere(lat2, lng2);
+                    var rpb = rotate(p3b);
+                    if (rpb.z > -0.05) {
+                        var sx2 = CX + rpb.x * R, sy2 = CY - rpb.y * R;
+                        if (first) { ctx.moveTo(sx2, sy2); first = false; }
+                        else        ctx.lineTo(sx2, sy2);
+                    } else { first = true; }
+                }
+                ctx.strokeStyle = 'rgba(79,195,247,0.07)';
+                ctx.lineWidth   = 0.6;
+                ctx.stroke();
+            }
+
+            // Route edges
+            edges.forEach(function (e) {
+                var a = project(nodes[e[0]]);
+                var b = project(nodes[e[1]]);
+                if (a.z > 0.05 && b.z > 0.05) {
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.strokeStyle = 'rgba(79,195,247,0.12)';
+                    ctx.lineWidth   = 0.8;
+                    ctx.stroke();
+                }
+            });
+
+            // City nodes
+            nodes.forEach(function (n) {
+                var p    = project(n);
+                var fade = Math.max(0, p.z);
+                if (p.z > 0) {
+                    // Outer glow
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(79,195,247,' + (fade * 0.1) + ')';
+                    ctx.fill();
+                    // Dot
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2.8, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(79,195,247,' + Math.min(0.9, fade + 0.3) + ')';
+                    ctx.fill();
+                }
+            });
+
+            // Travelling packets
+            packets.forEach(function (pkt) {
+                pkt.t += pkt.speed;
+                if (pkt.t > 1) pkt.t = 0;
+
+                var a = project(nodes[pkt.edge[0]]);
+                var b = project(nodes[pkt.edge[1]]);
+                if (a.z > 0.05 && b.z > 0.05) {
+                    var px = a.x + (b.x - a.x) * pkt.t;
+                    var py = a.y + (b.y - a.y) * pkt.t;
+                    // Trail
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pkt.color.replace(')', ',0.15)').replace('rgb', 'rgba');
+                    ctx.fill();
+                    // Core dot
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = pkt.color;
+                    ctx.fill();
+                }
+            });
+
+            // Globe outline
+            ctx.beginPath();
+            ctx.arc(CX, CY, R, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(79,195,247,0.18)';
+            ctx.lineWidth   = 1.2;
+            ctx.stroke();
+
+            // Atmosphere glow
+            ctx.beginPath();
+            ctx.arc(CX, CY, R + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(79,195,247,0.06)';
+            ctx.lineWidth   = 10;
+            ctx.stroke();
+
+            rotY += 0.004;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    })();
+</script>
+
+<script src="js/theme.js"></script>
+</body>
+</html>

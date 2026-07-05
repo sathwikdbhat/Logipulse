@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSST | Driver Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <style>
+        html, body { overflow: auto; }
+
+        .driver-layout {
+            margin-top: 56px;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+            padding: 24px 28px 60px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .d-panel { display: flex; flex-direction: column; gap: 16px; }
+
+        .d-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+
+        .d-card-title {
+            font-size: 11px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 14px;
+        }
+
+        .d-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 1px solid var(--border-dim);
+            font-size: 13px;
+        }
+        .d-row:last-child { border-bottom: none; }
+        .d-row-label { color: var(--text-muted); }
+        .d-row-value { color: var(--text-primary); font-weight: 500; text-align: right; max-width: 60%; }
+
+        .vehicle-reg-big {
+            font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+            color: var(--accent-blue); margin-bottom: 14px;
+        }
+
+        .no-data {
+            text-align: center; padding: 28px 16px;
+            color: var(--text-muted); font-size: 13px; line-height: 1.8;
+        }
+        .no-data .icon { font-size: 36px; margin-bottom: 8px; }
+
+        #driverMap { height: 440px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+
+        .map-header {
+            padding: 14px 18px; border-bottom: 1px solid var(--border-dim);
+            font-size: 12px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .d-map-card {
+            background: var(--bg-card); border: 1px solid var(--border-dim);
+            border-radius: var(--radius-lg); overflow: hidden;
+        }
+
+        /* Upgraded Shipment Detail Block */
+        .shipment-detail-block {
+            background: var(--bg-secondary); border: 1px solid var(--border-dim);
+            border-radius: var(--radius-md); padding: 18px; margin-bottom: 16px;
+            scroll-margin-top: 80px; /* Offset for sticky nav when scrolling */
+        }
+        .shipment-detail-block:last-child { margin-bottom: 0; }
+
+        .sd-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-dim); padding-bottom: 12px; }
+        .sd-tracking { font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--accent-blue); }
+
+        .sd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .sd-item-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; font-weight: 600; }
+        .sd-item-value { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+
+        .sb-prog-wrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+        .sb-prog-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+        .sb-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 16px; }
+
+        .anomaly-card {
+            background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2);
+            border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px;
+        }
+        .anomaly-severity { font-size: 11px; font-weight: 700; color: #ef4444; margin-bottom: 6px; text-transform: uppercase; }
+        .anomaly-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+        .client-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; background: var(--bg-secondary);
+            border-radius: var(--radius-sm); margin-bottom: 8px;
+        }
+        .client-row:last-child { margin-bottom: 0; }
+        .cr-icon { font-size: 18px; flex-shrink: 0; }
+        .cr-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .cr-sub  { font-size: 11px; color: var(--text-muted); }
+
+        /* Timeline Styles */
+        .milestone-timeline { padding: 0; }
+        .milestone-item { display: flex; gap: 8px; margin-bottom: 0; }
+        .milestone-line-wrap { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 24px; }
+        .milestone-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 9px; background: var(--bg-card); flex-shrink: 0; z-index: 1; }
+        .milestone-connector { width: 2px; flex: 1; min-height: 12px; background: var(--border-dim); margin: 2px 0; }
+        .milestone-body  { padding-bottom: 10px; flex: 1; min-width: 0; }
+        .milestone-event { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .milestone-desc  { font-size: 10px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 2px; }
+        .milestone-time  { font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+        /* Map popups in light mode */
+        body.light-theme .leaflet-popup-content-wrapper { background: #fff; border: 1px solid #dde3ea; color: #1a202c; }
+        body.light-theme .leaflet-popup-tip { background: #fff; }
+
+        @media (max-width: 900px) {
+            .driver-layout { grid-template-columns: 1fr; margin-top: 56px; }
+            .sd-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body style="background:var(--bg-primary);">
+
+<nav class="top-nav" style="overflow: visible;">
+    <a href="/driver.html" class="nav-logo" style="text-decoration: none;">
+        <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
+            <path d="M8 12 L24 22 L8 32 Z" fill="rgba(79,195,247,0.2)" stroke="#4fc3f7" stroke-width="2"/>
+            <path d="M20 12 L36 22 L20 32 Z" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="2"/>
+            <circle cx="8" cy="12" r="2.5" fill="#4fc3f7"/>
+            <circle cx="8" cy="32" r="2.5" fill="#4fc3f7"/>
+            <circle cx="36" cy="22" r="2.5" fill="#10b981"/>
+        </svg>
+        <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 18px; font-weight: 700; color: var(--accent-blue); line-height: 1.1; letter-spacing: 0.3px;">VSST</span>
+            <span style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Virtual Supply chain & Smart Transit</span>
+        </div>
+        <span style="font-size:10px;margin-left:8px;padding:2px 10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:10px;color:#10b981;font-family:var(--font-mono);">DRIVER VIEW</span>
+    </a>
+
+    <div style="flex:1;"></div>
+
+    <div class="nav-right">
+
+        <button class="btn-nav-logout" id="themeToggleBtn" onclick="window.toggleTheme && window.toggleTheme()" style="padding: 5px 10px; width: 32px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-normal);">☀️</button>
+
+        <div class="nav-user">
+            <span class="nav-user-avatar" id="dNavAvatar" style="background:rgba(16,185,129,0.15);color:#10b981;border-color:rgba(16,185,129,0.3);">D</span>
+            <span class="nav-user-name"   id="dNavName">Loading...</span>
+        </div>
+        <button class="btn-nav-logout" onclick="apiLogout()">Logout</button>
+    </div>
+</nav>
+
+<div class="driver-layout">
+
+    <div class="d-panel">
+        <div class="d-card">
+            <div class="d-card-title">&#128100; My Profile</div>
+            <div id="profileSection"><div class="no-data"><div class="icon">&#128100;</div><p>Loading profile...</p></div></div>
+        </div>
+
+        <div class="d-card">
+            <div class="d-card-title">&#128663; My Assigned Vehicle</div>
+            <div id="vehicleSection"><div class="no-data"><div class="icon">&#128663;</div><p>Loading vehicle...</p></div></div>
+        </div>
+
+        <div class="d-card">
+            <div class="d-card-title">&#127970; Sender &amp; Receiver Clients</div>
+            <div id="clientSection"><div class="no-data"><div class="icon">&#127970;</div><p>Loading clients...</p></div></div>
+        </div>
+    </div>
+
+    <div class="d-panel">
+        <div class="d-map-card">
+            <div class="map-header">&#128205; My Active Routes</div>
+            <div id="driverMap"></div>
+        </div>
+
+        <div class="d-card">
+            <div class="d-card-title">&#128666; Shipment Details & Itinerary</div>
+            <div id="shipmentSection"><div class="no-data"><div class="icon">&#128666;</div><p>Loading shipments...</p></div></div>
+        </div>
+    </div>
+
+</div>
+
+<script src="js/api-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/theme.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Driver Dashboard Script
+
+    var IS_LOCAL  = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    var API_BASE  = IS_LOCAL ? 'http://localhost:9090' : 'https://your-app-name.onrender.com';
+
+    var driverMap  = null;
+    var driverUser = null;
+    var mapLayers  = [];
+
+    var STATUS_COLORS = {
+        'IN_TRANSIT': '#4fc3f7', 'DELAYED': '#ef4444',
+        'REROUTED': '#a78bfa',   'DELIVERED': '#10b981'
+    };
+
+    // ---- ENTRY POINT ----
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof requireDriverAuth === 'function') {
+            if (!requireDriverAuth()) return;
+        } else {
+            if (!isLoggedIn || !isLoggedIn()) {
+                window.location.href = '/login.html';
+                return;
+            }
+        }
+
+        driverUser = getCurrentUser ? getCurrentUser() : null;
+        if (!driverUser) { window.location.href = '/login.html'; return; }
+
+        var av = document.getElementById('dNavAvatar');
+        var nm = document.getElementById('dNavName');
+        if (av) av.textContent = (driverUser.fullName || driverUser.username).charAt(0).toUpperCase();
+        if (nm) nm.textContent = driverUser.fullName || driverUser.username;
+
+        initDriverMap();
+        loadAllData();
+
+        setInterval(loadAllData, 15000);
+    });
+
+    // ---- MAP INIT ----
+    function initDriverMap() {
+        try {
+            driverMap = L.map('driverMap', { center: [20.5, 78.9], zoom: 5 });
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd', maxZoom: 19
+            }).addTo(driverMap);
+        } catch (e) { console.error('Map init error:', e); }
+    }
+
+    async function loadAllData() {
+        await Promise.all([loadProfile(), loadVehicle(), loadShipments()]);
+    }
+
+    // ---- LOADERS ----
+    async function loadProfile() {
+        var el = document.getElementById('profileSection');
+        try {
+            var resp = await fetch(API_BASE + '/api/auth/me', { credentials: 'include' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            var u = await resp.json();
+
+            el.innerHTML =
+                '<div class="d-row"><span class="d-row-label">Full Name</span><span class="d-row-value">' + (u.fullName || '--') + '</span></div>' +
+                '<div class="d-row"><span class="d-row-label">Username</span><span class="d-row-value" style="color:var(--accent-blue);font-family:var(--font-mono);">@' + u.username + '</span></div>' +
+                '<div class="d-row"><span class="d-row-label">Email</span><span class="d-row-value">' + (u.email || '--') + '</span></div>' +
+                '<div class="d-row"><span class="d-row-label">Role</span><span class="d-row-value" style="color:#10b981;font-weight:700;">Driver</span></div>';
+        } catch (e) {
+            el.innerHTML = '<p style="color:#ef4444;font-size:13px;">Could not load profile: ' + e.message + '</p>';
+        }
+    }
+
+    async function loadVehicle() {
+        var el = document.getElementById('vehicleSection');
+        try {
+            var resp = await fetch(API_BASE + '/api/vehicles', { credentials: 'include' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            var vehicles = await resp.json();
+
+            var myName = (driverUser.fullName || driverUser.username || '').trim().toLowerCase();
+            var vehicle = vehicles.find(function (v) {
+                var vn = (v.assignedDriverName || '').trim().toLowerCase();
+                return vn === myName;
+            });
+
+            if (!vehicle) {
+                el.innerHTML = '<div class="no-data"><div class="icon">&#128663;</div><p>No vehicle assigned yet.<br>Contact your Admin.</p></div>';
+                return;
+            }
+
+            var sc = vehicle.status === 'AVAILABLE' ? '#10b981' : vehicle.status === 'IN_TRANSIT' ? '#4fc3f7' : '#f59e0b';
+            el.innerHTML =
+                '<div class="vehicle-reg-big">' + vehicle.registrationNumber + '</div>' +
+                '<div class="d-row"><span class="d-row-label">Type</span><span class="d-row-value">' + vehicle.vehicleType.replace(/_/g,' ') + '</span></div>' +
+                '<div class="d-row"><span class="d-row-label">Capacity</span><span class="d-row-value">' + (vehicle.capacityTons || '--') + ' tons</span></div>' +
+                '<div class="d-row"><span class="d-row-label">Make</span><span class="d-row-value">' + (vehicle.manufacturerName || '--') + ' ' + (vehicle.modelYear || '') + '</span></div>' +
+                '<div class="d-row"><span class="d-row-label">Status</span><span class="d-row-value" style="color:' + sc + ';font-weight:700;">' + vehicle.status.replace(/_/g,' ') + '</span></div>';
+        } catch (e) {
+            el.innerHTML = '<p style="color:#ef4444;font-size:13px;">Could not load vehicle: ' + e.message + '</p>';
+        }
+    }
+
+    async function loadShipments() {
+        var shipEl  = document.getElementById('shipmentSection');
+        var cliEl   = document.getElementById('clientSection');
+
+        try {
+            var resp = await fetch(API_BASE + '/api/shipments', { credentials: 'include' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            var all = await resp.json();
+
+            var myName = (driverUser.fullName || driverUser.username || '').trim().toLowerCase();
+            var mine   = all.filter(function (s) {
+                return (s.assignedDriverName || '').trim().toLowerCase() === myName;
+            });
+
+            await renderDetailedShipments(mine, shipEl);
+            renderClients(mine, cliEl);
+            renderMap(mine);
+
+        } catch (e) {
+            shipEl.innerHTML = '<p style="color:#ef4444;font-size:13px;">Could not load shipments: ' + e.message + '</p>';
+        }
+    }
+
+    async function renderDetailedShipments(shipments, el) {
+        if (shipments.length === 0) {
+            el.innerHTML = '<div class="no-data"><div class="icon">&#128666;</div><p>No shipments assigned to you yet.</p></div>';
+            return;
+        }
+
+        var html = '';
+
+        for (const s of shipments) {
+            var color    = STATUS_COLORS[s.status] || '#94a3b8';
+            var progress = calcProgress(s);
+            var eta      = s.estimatedDeliveryTime
+                ? new Date(s.estimatedDeliveryTime).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+                : 'N/A';
+            var dispatchDate = s.dispatchTime
+                ? new Date(s.dispatchTime).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+                : 'N/A';
+
+            var statusLabel = s.status === 'IN_TRANSIT' ? 'In Transit' : s.status.charAt(0) + s.status.slice(1).toLowerCase();
+
+            html +=
+                '<div class="shipment-detail-block" id="shipcard-' + s.id + '">' +
+                '<div class="sd-header">' +
+                '<span class="sd-tracking">' + s.trackingId + '</span>' +
+                '<span class="status-badge ' + s.status + '">' + statusLabel + '</span>' +
+                '</div>' +
+
+                '<div class="sd-grid">' +
+                '<div><div class="sd-item-label">Origin</div><div class="sd-item-value">' + s.origin + '</div></div>' +
+                '<div><div class="sd-item-label">Destination</div><div class="sd-item-value">' + s.destination + '</div></div>' +
+                '<div><div class="sd-item-label">Cargo & Weight</div><div class="sd-item-value">' + s.cargoType + ' &bull; ' + s.weightKg.toLocaleString() + ' kg</div></div>' +
+                '<div><div class="sd-item-label">Dispatched</div><div class="sd-item-value">' + dispatchDate + '</div></div>' +
+                '</div>' +
+
+                '<div class="sb-prog-wrap"><div class="sb-prog-fill" style="width:' + progress + '%;background:' + color + ';"></div></div>' +
+                '<div class="sb-meta"><span>' + progress + '% complete</span><span style="color:' + color + '">ETA: ' + eta + '</span></div>';
+
+            // Check for Anomalies via API
+            try {
+                let anomalyResp = await fetch(API_BASE + '/api/anomalies/' + s.id, { credentials: 'include' });
+                if (anomalyResp.ok) {
+                    let anomalies = await anomalyResp.json();
+                    if (anomalies && anomalies.length > 0) {
+                        html += '<div class="detail-divider" style="margin:16px 0;"></div><div class="sd-item-label">&#9888; Active Route Anomalies</div>';
+                        anomalies.forEach(a => {
+                            html += '<div class="anomaly-card"><div class="anomaly-severity">&#128308; ' + a.severity + ' SEVERITY</div>' +
+                                '<div class="anomaly-desc">' + a.description + '</div></div>';
+                        });
+                    }
+                }
+            } catch(e) { console.warn("Failed to load anomaly for driver view", e); }
+
+            // Weather Widget Placeholder
+            html += '<div class="detail-divider" style="margin:16px 0;"></div>' +
+                '<div class="sd-item-label">&#127777; Current Weather at GPS Location</div>' +
+                '<div id="dw-' + s.id + '" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Loading live weather...</div>';
+
+            // Milestones Placeholder
+            html += '<div class="sd-item-label">&#128198; Journey Timeline</div>' +
+                '<div id="dm-' + s.id + '" class="milestone-timeline">Loading timeline...</div>' +
+                '</div>';
+        }
+
+        el.innerHTML = html;
+
+        // Fetch Weather and Milestones asynchronously after rendering
+        shipments.forEach(s => {
+            loadDriverWeather(s.id, s.currentLat, s.currentLng);
+            loadDriverMilestones(s.id);
+        });
+    }
+
+    async function loadDriverWeather(shipmentId, lat, lng) {
+        var el = document.getElementById('dw-' + shipmentId);
+        if (!el) return;
+        try {
+            var resp = await fetch(API_BASE + '/api/weather/' + lat + '/' + lng, { credentials: 'include' });
+            if (!resp.ok) { el.textContent = 'Weather data unavailable'; return; }
+            var w = await resp.json();
+            var wColor = w.severity === 'HIGH' ? '#ef4444' : w.severity === 'MEDIUM' ? '#f59e0b' : '#10b981';
+
+            el.innerHTML =
+                '<div style="background:rgba(79,195,247,0.06);border:1px solid rgba(79,195,247,0.15);border-radius:8px;padding:12px;">' +
+                '<div style="font-size:16px;margin-bottom:6px;">' + (w.icon || '🌤') + ' <strong style="color:' + wColor + '">' + (w.description || w.main || 'N/A') + '</strong></div>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text-secondary);">' +
+                '<span>&#127777; ' + (w.temp ? w.temp.toFixed(1) + '°C' : '--') + '</span>' +
+                '<span>&#128168; Humidity: ' + (w.humidity || '--') + '%</span>' +
+                '<span>&#127787; Wind: ' + (w.wind_speed ? w.wind_speed.toFixed(1) + ' km/h' : '--') + '</span>' +
+                '<span style="color:' + wColor + ';font-weight:600;">Risk: ' + (w.severity || 'LOW') + '</span>' +
+                '</div>' +
+                (w.isHazardous ? '<div style="margin-top:8px;font-size:11px;color:#fca5a5;">&#9888; Hazardous conditions ahead. Proceed with caution.</div>' : '') +
+                '</div>';
+        } catch (e) { el.textContent = 'Weather data unavailable'; }
+    }
+
+    async function loadPopupWeather(id, lat, lng) {
+        var el = document.getElementById('pop-w-' + id);
+        if (!el) return;
+        try {
+            var resp = await fetch(API_BASE + '/api/weather/' + lat + '/' + lng, { credentials: 'include' });
+            if (!resp.ok) { el.innerHTML = 'Weather unavailable'; return; }
+            var w = await resp.json();
+            var wColor = w.severity === 'HIGH' ? '#ef4444' : w.severity === 'MEDIUM' ? '#f59e0b' : '#10b981';
+            el.innerHTML = '<span style="color:' + wColor + '">' + (w.icon || '🌤') + ' ' + (w.description || w.main || 'N/A') + ' &bull; ' + (w.temp ? w.temp.toFixed(1) + '°C' : '--') + ' &bull; Wind: ' + (w.wind_speed ? w.wind_speed.toFixed(1) + ' km/h' : '--') + '</span>';
+        } catch (e) {
+            el.innerHTML = 'Weather unavailable';
+        }
+    }
+
+    async function loadDriverMilestones(shipmentId) {
+        var el = document.getElementById('dm-' + shipmentId);
+        if (!el) return;
+        try {
+            var mResp = await fetch(API_BASE + '/api/shipments/' + shipmentId + '/milestones', { credentials: 'include' });
+            if (mResp.ok) {
+                var milestones = await mResp.json();
+                if (milestones && milestones.length > 0) {
+                    var html = '';
+                    var eventIcons  = { 'DISPATCHED':'&#128666;','CHECKPOINT':'&#128205;','WEATHER_ALERT':'&#9928;','DELAYED':'&#9888;','REROUTED':'&#128260;','ARRIVED_HUB':'&#127981;','OUT_FOR_DELIVERY':'&#128230;','DELIVERED':'&#9989;' };
+                    var eventColors = { 'DISPATCHED':'#4fc3f7','CHECKPOINT':'#94a3b8','WEATHER_ALERT':'#f59e0b','DELAYED':'#ef4444','REROUTED':'#a78bfa','ARRIVED_HUB':'#4fc3f7','OUT_FOR_DELIVERY':'#f59e0b','DELIVERED':'#10b981' };
+
+                    milestones.forEach(function (m, i) {
+                        var mIcon  = eventIcons[m.eventType]  || '&#9679;';
+                        var mColor = eventColors[m.eventType] || '#94a3b8';
+                        var mTime  = new Date(m.occurredAt).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+                        html += '<div class="milestone-item">' +
+                            '<div class="milestone-line-wrap">' +
+                            '<div class="milestone-dot" style="background:var(--bg-secondary);border:2px solid ' + mColor + ';color:' + mColor + ';">' + mIcon + '</div>' +
+                            (i < milestones.length - 1 ? '<div class="milestone-connector"></div>' : '') +
+                            '</div>' +
+                            '<div class="milestone-body">' +
+                            '<div class="milestone-event" style="color:' + mColor + '">' + m.eventType.replace(/_/g,' ') + '</div>' +
+                            '<div class="milestone-desc">' + m.description + '</div>' +
+                            '<div class="milestone-time">' + mTime + (m.location ? ' &bull; ' + m.location : '') + '</div>' +
+                            '</div></div>';
+                    });
+                    el.innerHTML = html;
+                } else {
+                    el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">No timeline events yet.</p>';
+                }
+            }
+        } catch (e) { el.textContent = 'Failed to load timeline'; }
+    }
+
+    function renderClients(shipments, el) {
+        if (shipments.length === 0) {
+            el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">No client data available.</p>';
+            return;
+        }
+
+        var senders   = {};
+        var receivers = {};
+
+        shipments.forEach(function (s) {
+            if (s.customerName && s.customerName.trim())
+                senders[s.customerName.trim()] = s.origin || '';
+            if (s.destination && s.destination.trim())
+                receivers[s.destination.trim()] = s.destination || '';
+        });
+
+        var html = '';
+
+        var sKeys = Object.keys(senders);
+        if (sKeys.length > 0) {
+            html += '<div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">&#128228; Senders (Pickup)</div>';
+            sKeys.forEach(function (name) {
+                html +=
+                    '<div class="client-row">' +
+                    '<span class="cr-icon" style="color:#4fc3f7;">&#128228;</span>' +
+                    '<div><div class="cr-name">' + name + '</div>' +
+                    '<div class="cr-sub">' + (senders[name].split(',')[0] || '') + '</div></div>' +
+                    '</div>';
+            });
+        }
+
+        var rKeys = Object.keys(receivers);
+        if (rKeys.length > 0) {
+            html += '<div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;">&#128229; Receivers (Delivery)</div>';
+            rKeys.forEach(function (dest) {
+                var city  = dest.split(',')[0] || dest;
+                var state = dest.split(',')[1] ? dest.split(',')[1].trim() : '';
+                html +=
+                    '<div class="client-row">' +
+                    '<span class="cr-icon" style="color:#10b981;">&#128229;</span>' +
+                    '<div><div class="cr-name">' + city + '</div>' +
+                    '<div class="cr-sub">' + state + '</div></div>' +
+                    '</div>';
+            });
+        }
+
+        if (!html) {
+            el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">No client data available.</p>';
+        } else {
+            el.innerHTML = html;
+        }
+    }
+
+    function renderMap(shipments) {
+        if (!driverMap) return;
+
+        // Clear previous layers
+        mapLayers.forEach(function (l) { driverMap.removeLayer(l); });
+        mapLayers = [];
+
+        if (shipments.length === 0) return;
+
+        var bounds = [];
+
+        shipments.forEach(function (s) {
+            var color = STATUS_COLORS[s.status] || '#4fc3f7';
+            var statusLabel = s.status === 'IN_TRANSIT' ? 'In Transit' : s.status.charAt(0) + s.status.slice(1).toLowerCase();
+            var originCity = s.origin ? s.origin.split(',')[0] : '';
+            var destCity   = s.destination ? s.destination.split(',')[0] : '';
+            var eta = s.estimatedDeliveryTime ? new Date(s.estimatedDeliveryTime).toLocaleString('en-IN', { day:'2-digit', month:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : 'Unknown';
+
+            // Route line
+            if (s.originLat && s.destLat) {
+                var line = L.polyline(
+                    [[s.originLat, s.originLng],[s.destLat, s.destLng]],
+                    { color: color, weight: 2, dashArray: '8,5', opacity: 0.5 }
+                ).addTo(driverMap);
+                mapLayers.push(line);
+                bounds.push([s.originLat, s.originLng]);
+                bounds.push([s.destLat,   s.destLng]);
+            }
+
+            // Upgraded Interactive Popup HTML
+            var popupHtml = '<div style="font-family:Inter,sans-serif;line-height:1.6;min-width:210px;color:var(--text-primary);">' +
+                '<div style="font-weight:800;font-size:15px;color:' + color + ';margin-bottom:2px;">&#128666; ' + s.trackingId + '</div>' +
+                '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">' + s.cargoType + '</div>' +
+                '<div style="height:1px;background:var(--border-dim);margin:8px 0;"></div>' +
+                '<div style="font-size:12px;margin-bottom:4px;"><strong>Status:</strong> <span style="color:' + color + '">' + statusLabel + '</span></div>' +
+                '<div style="font-size:12px;margin-bottom:4px;"><strong>Route:</strong> ' + originCity + ' &rarr; ' + destCity + '</div>' +
+                '<div style="font-size:12px;margin-bottom:8px;"><strong>ETA:</strong> ' + eta + '</div>' +
+                '<div id="pop-w-' + s.id + '" style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">&#127777; Fetching live weather...</div>' +
+                '<button onclick="document.getElementById(\'shipcard-' + s.id + '\').scrollIntoView({behavior:\'smooth\', block:\'start\'})" style="width:100%;background:rgba(79,195,247,0.1);color:#4fc3f7;border:1px solid rgba(79,195,247,0.3);padding:6px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;">View Full Details Below</button>' +
+                '</div>';
+
+            // Current position marker
+            var icon = L.divIcon({
+                className: '',
+                html: '<div style="width:16px;height:16px;background:' + color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 4px ' + color + '44;"></div>',
+                iconSize: [16,16], iconAnchor: [8,8]
+            });
+
+            var m = L.marker([s.currentLat, s.currentLng], { icon: icon })
+                .addTo(driverMap)
+                .bindPopup(popupHtml);
+
+            // Fetch weather dynamically when the driver opens the popup
+            m.on('popupopen', function () {
+                loadPopupWeather(s.id, s.currentLat, s.currentLng);
+            });
+
+            mapLayers.push(m);
+            bounds.push([s.currentLat, s.currentLng]);
+        });
+
+        if (bounds.length > 0) {
+            try { driverMap.fitBounds(bounds, { padding: [30, 30] }); }
+            catch (e) { driverMap.setView([20.5, 78.9], 5); }
+        }
+    }
+
+    // ---- HELPERS ----
+    function calcProgress(s) {
+        if (s.status === 'DELIVERED') return 100;
+        if (!s.originLat || !s.destLat) return 0;
+        var total   = euclidDist(s.originLat, s.originLng, s.destLat,    s.destLng);
+        var covered = euclidDist(s.originLat, s.originLng, s.currentLat, s.currentLng);
+        if (total === 0) return 0;
+        return Math.min(99, Math.round((covered / total) * 100));
+    }
+
+    function euclidDist(lat1, lng1, lat2, lng2) {
+        return Math.sqrt(Math.pow(lat2-lat1, 2) + Math.pow(lng2-lng1, 2));
+    }
+</script>
+</body>
+</html>

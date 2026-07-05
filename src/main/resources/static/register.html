@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>VSST | Create Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body style="overflow:auto;">
+
+<nav class="auth-nav">
+    <a href="/welcome.html" class="auth-nav-logo">
+        <svg width="26" height="26" viewBox="0 0 44 44" fill="none">
+            <path d="M8 12 L24 22 L8 32 Z" fill="rgba(79,195,247,0.2)" stroke="#4fc3f7" stroke-width="2"/>
+            <path d="M20 12 L36 22 L20 32 Z" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="2"/>
+            <circle cx="8" cy="12" r="2.5" fill="#4fc3f7"/>
+            <circle cx="8" cy="32" r="2.5" fill="#4fc3f7"/>
+            <circle cx="36" cy="22" r="2.5" fill="#10b981"/>
+        </svg>
+        VSST
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <a href="/login.html" class="auth-back-btn">&#8592; Back to Login</a>
+    </div>
+</nav>
+
+<div class="auth-wrapper" style="padding-top:70px;">
+    <div class="auth-card register-card">
+
+        <div class="auth-card-icon">&#128100;</div>
+        <h1 class="auth-card-title">Create Account</h1>
+        <p class="auth-card-sub">Join the VSST Control Tower</p>
+
+        <div class="auth-error"   id="registerError"></div>
+        <div class="auth-success" id="registerSuccess"></div>
+
+        <div class="auth-form-group">
+            <label class="auth-label">Full Name</label>
+            <input class="auth-input" type="text" id="fullName"
+                   placeholder="e.g. Sathwik Kumar"/>
+        </div>
+
+        <div class="auth-form-group">
+            <label class="auth-label">Username</label>
+            <input class="auth-input" type="text" id="regUsername"
+                   placeholder="Choose a unique username"/>
+        </div>
+
+        <div class="auth-form-group">
+            <label class="auth-label">Email Address</label>
+            <input class="auth-input" type="email" id="regEmail"
+                   placeholder="your@email.com"/>
+        </div>
+
+        <div class="auth-form-group">
+            <label class="auth-label">Phone Number (Optional)</label>
+            <input class="auth-input" type="tel" id="regPhone"
+                   placeholder="+91-XXXXXXXXXX"/>
+        </div>
+
+        <div class="auth-form-group">
+            <label class="auth-label">Password</label>
+            <input class="auth-input" type="password" id="regPassword"
+                   placeholder="Minimum 6 characters"/>
+        </div>
+
+        <div class="auth-form-group">
+            <label class="auth-label">Confirm Password</label>
+            <input class="auth-input" type="password" id="regPasswordConfirm"
+                   placeholder="Repeat your password"/>
+        </div>
+
+        <button class="auth-btn" id="registerBtn" onclick="handleRegister()">
+            &#10003; Create Account
+        </button>
+
+        <div class="auth-footer">
+            Already have an account? <a href="/login.html">Sign in here</a>
+        </div>
+
+    </div>
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/theme.js"></script>
+<script>
+    async function handleRegister() {
+        hideFormError('registerError');
+
+        var fullName   = document.getElementById('fullName').value.trim();
+        var username   = document.getElementById('regUsername').value.trim();
+        var email      = document.getElementById('regEmail').value.trim();
+        var phone      = document.getElementById('regPhone').value.trim();
+        var password   = document.getElementById('regPassword').value;
+        var confirm    = document.getElementById('regPasswordConfirm').value;
+
+        if (!fullName || !username || !email || !password) {
+            showFormError('registerError', 'All required fields must be filled.');
+            return;
+        }
+        if (password.length < 6) {
+            showFormError('registerError', 'Password must be at least 6 characters.');
+            return;
+        }
+        if (password !== confirm) {
+            showFormError('registerError', 'Passwords do not match.');
+            return;
+        }
+
+        setButtonLoading('registerBtn', true, '&#10003; Create Account');
+
+        try {
+            var user = await apiRegister({
+                fullName:    fullName,
+                username:    username,
+                email:       email,
+                phoneNumber: phone,
+                password:    password
+            });
+
+            var suc = document.getElementById('registerSuccess');
+            suc.textContent = '✓ Account created! Redirecting to login...';
+            suc.style.display = 'block';
+            setTimeout(function() { window.location.href = '/login.html'; }, 1800);
+
+        } catch (error) {
+            showFormError('registerError', error.message || 'Registration failed. Please try again.');
+        } finally {
+            setButtonLoading('registerBtn', false, '&#10003; Create Account');
+        }
+    }
+
+    function showFormError(id, msg) {
+        var el = document.getElementById(id);
+        if (el) { el.textContent = msg; el.style.display = 'block'; }
+    }
+
+    function hideFormError(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    }
+</script>
+</body>
+</html>

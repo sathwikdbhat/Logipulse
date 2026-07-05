@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSST | Shipments</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body style="overflow:auto;background:var(--bg-primary);">
+
+<nav class="top-nav" id="topNav">
+    <a href="/index.html" class="nav-logo">
+        <svg width="32" height="32" viewBox="0 0 44 44" fill="none">
+            <path d="M8 12 L24 22 L8 32 Z" fill="rgba(79,195,247,0.2)" stroke="#4fc3f7" stroke-width="2"/>
+            <path d="M20 12 L36 22 L20 32 Z" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="2"/>
+            <circle cx="8" cy="12" r="2.5" fill="#4fc3f7"/>
+            <circle cx="8" cy="32" r="2.5" fill="#4fc3f7"/>
+            <circle cx="36" cy="22" r="2.5" fill="#10b981"/>
+        </svg>
+        <span class="nav-logo-text">VSST</span>
+    </a>
+
+    <div class="nav-tabs">
+        <a href="/index.html"     class="nav-tab">&#127968; Control Tower</a>
+        <a href="/shipments.html" class="nav-tab active">&#128666; Shipments</a>
+        <a href="/fleet.html"     class="nav-tab">&#128663; Fleet</a>
+        <a href="/analytics.html" class="nav-tab">&#128200; Analytics</a>
+    </div>
+
+    <div class="nav-right">
+        <div class="nav-user" id="navUser">
+            <span class="nav-user-avatar" id="navAvatar">A</span>
+            <span class="nav-user-name"   id="navName">Loading...</span>
+            <span class="nav-user-role"   id="navRole">--</span>
+        </div>
+        <button class="btn-nav-logout" onclick="apiLogout()">Logout</button>
+    </div>
+</nav>
+
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <div class="page-breadcrumb">OPERATIONS</div>
+            <h1 class="page-title">&#128666; Shipments</h1>
+        </div>
+        <button class="btn-create" id="openCreateBtn" onclick="openCreateModal()">
+            &#43; New Shipment
+        </button>
+    </div>
+
+    <div class="stats-strip" id="statsStrip">
+        <div class="stat-pill">
+            <span class="stat-num" id="statTotal">0</span>
+            <span class="stat-lbl">Total</span>
+        </div>
+        <div class="stat-pill transit">
+            <span class="stat-num" id="statTransit">0</span>
+            <span class="stat-lbl">In Transit</span>
+        </div>
+        <div class="stat-pill delayed">
+            <span class="stat-num" id="statDelayed">0</span>
+            <span class="stat-lbl">Delayed</span>
+        </div>
+        <div class="stat-pill rerouted">
+            <span class="stat-num" id="statRerouted">0</span>
+            <span class="stat-lbl">Rerouted</span>
+        </div>
+        <div class="stat-pill delivered">
+            <span class="stat-num" id="statDelivered">0</span>
+            <span class="stat-lbl">Delivered</span>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-toolbar">
+            <input class="table-search" id="searchInput" type="text"
+                   placeholder="&#128269;  Search by tracking ID, cargo, city..."
+                   oninput="filterTable()"/>
+            <div class="table-filters">
+                <button class="filter-chip active" data-f="ALL"          onclick="setTableFilter('ALL',this)">All</button>
+                <button class="filter-chip"        data-f="IN_TRANSIT"   onclick="setTableFilter('IN_TRANSIT',this)">In Transit</button>
+                <button class="filter-chip"        data-f="DELAYED"      onclick="setTableFilter('DELAYED',this)">Delayed</button>
+                <button class="filter-chip"        data-f="REROUTED"     onclick="setTableFilter('REROUTED',this)">Rerouted</button>
+                <button class="filter-chip"        data-f="DELIVERED"    onclick="setTableFilter('DELIVERED',this)">Delivered</button>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="data-table" id="shipmentsTable">
+                <thead>
+                <tr>
+                    <th>Tracking ID</th>
+                    <th>Customer</th>
+                    <th>Cargo</th>
+                    <th>Route</th>
+                    <th>Priority</th>
+                    <th>Distance</th>
+                    <th>Driver</th>
+                    <th>ETA</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="shipmentsBody">
+                <tr><td colspan="10" class="table-loading">Loading shipments...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="createModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>&#43; Create New Shipment</h2>
+            <button class="modal-close" onclick="closeCreateModal()">&#10005;</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-error"   id="createError"></div>
+            <div class="form-success" id="createSuccess"></div>
+
+            <div class="modal-grid">
+                <div class="form-group">
+                    <label class="form-label">Customer Name *</label>
+                    <input class="form-input" id="mCustomer" placeholder="e.g. Karnataka Chemicals Ltd."/>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Cargo Type *</label>
+                    <input class="form-input" id="mCargo" placeholder="Loading..."/>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Weight (kg)</label>
+                    <input class="form-input" id="mWeight" type="number" placeholder="e.g. 18000"/>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select class="form-input" id="mPriority">
+                        <option value="LOW">Low</option>
+                        <option value="NORMAL" selected>Normal</option>
+                        <option value="HIGH">High</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Origin City *</label>
+                    <select class="form-input" id="mOrigin" onchange="onCitySelect('mOrigin','mOriginCoords')"></select>
+                    <small class="form-hint" id="mOriginCoords"></small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Destination City *</label>
+                    <select class="form-input" id="mDest" onchange="onCitySelect('mDest','mDestCoords')"></select>
+                    <small class="form-hint" id="mDestCoords"></small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">ETA</label>
+                    <input class="form-input" id="mEta" type="number" placeholder="5" value="5" min="1" max="60"/>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Assign Vehicle *</label>
+                    <select class="form-input" id="mVehicle" style="max-height:120px;overflow-y:auto;"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeCreateModal()">Cancel</button>
+            <button class="btn-modal-submit" id="createSubmitBtn" onclick="submitCreateShipment()">
+                &#128666; Create Shipment
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/api-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cities.js"></script>
+<script src="js/shipments.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>

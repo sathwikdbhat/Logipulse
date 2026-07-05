@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSST | Fleet Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body style="overflow:auto;background:var(--bg-primary);">
+
+<nav class="top-nav">
+    <a href="/index.html" class="nav-logo">
+        <svg width="32" height="32" viewBox="0 0 44 44" fill="none">
+            <path d="M8 12 L24 22 L8 32 Z" fill="rgba(79,195,247,0.2)" stroke="#4fc3f7" stroke-width="2"/>
+            <path d="M20 12 L36 22 L20 32 Z" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="2"/>
+            <circle cx="8" cy="12" r="2.5" fill="#4fc3f7"/>
+            <circle cx="8" cy="32" r="2.5" fill="#4fc3f7"/>
+            <circle cx="36" cy="22" r="2.5" fill="#10b981"/>
+        </svg>
+        <span class="nav-logo-text">VSST</span>
+    </a>
+    <div class="nav-tabs">
+        <a href="/index.html"     class="nav-tab">&#127968; Control Tower</a>
+        <a href="/shipments.html" class="nav-tab">&#128666; Shipments</a>
+        <a href="/fleet.html"     class="nav-tab active">&#128663; Fleet</a>
+        <a href="/analytics.html" class="nav-tab">&#128200; Analytics</a>
+    </div>
+    <div class="nav-right">
+        <div class="nav-user">
+            <span class="nav-user-avatar" id="navAvatar">A</span>
+            <span class="nav-user-name"   id="navName">Loading...</span>
+            <span class="nav-user-role"   id="navRole">--</span>
+        </div>
+        <button class="btn-nav-logout" onclick="apiLogout()">Logout</button>
+    </div>
+</nav>
+
+<div class="page-content">
+    <div class="page-header">
+        <div>
+            <div class="page-breadcrumb">OPERATIONS</div>
+            <h1 class="page-title">&#128663; Fleet Management</h1>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn-create" id="regVehicleBtn" onclick="openRegisterModal()" style="display:none;">
+                &#43; Register Vehicle
+            </button>
+            <button class="btn-create" id="regDriverBtn"
+                    style="display:none;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);"
+                    onclick="openRegisterDriverModal()">
+                &#43; Register Driver
+            </button>
+        </div>
+    </div>
+
+    <div class="page-tabs">
+        <button class="page-tab-btn active"
+                onclick="switchTab('vehicles', this)">&#128663; Vehicle Registry</button>
+        <button class="page-tab-btn"
+                onclick="switchTab('drivers', this)">&#128100; Driver Assignment</button>
+    </div>
+
+    <div class="tab-pane active" id="tab-vehicles">
+        <div class="vehicles-grid" id="vehiclesGrid">
+            <p style="color:var(--text-muted);font-size:13px;padding:20px;">Loading vehicles...</p>
+        </div>
+    </div>
+
+    <div class="tab-pane" id="tab-drivers">
+        <div class="table-card" style="margin-top:0">
+            <div class="table-toolbar">
+                <span style="font-size:13px;color:var(--text-secondary);">
+                    Assign registered drivers to vehicles. One driver per vehicle at a time.
+                </span>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>Driver</th>
+                        <th>Contact</th>
+                        <th>Assigned Vehicle</th>
+                        <th>Vehicle Status</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+                    <tbody id="driversBody">
+                    <tr><td colspan="5" class="table-loading">Loading drivers...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="registerVehicleModal" style="display:none;">
+    <div class="modal-box" style="max-width:500px;">
+        <div class="modal-header">
+            <h2>&#128663; Register New Vehicle</h2>
+            <button class="modal-close" onclick="closeRegisterModal()">&#10005;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-error"   id="vehicleError"></div>
+            <div class="form-success" id="vehicleSuccess"></div>
+            <div class="form-group">
+                <label class="form-label">Registration Number *</label>
+                <input class="form-input" id="vReg" placeholder="e.g. KA-01-AB-1234" style="text-transform:uppercase;"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Vehicle Type *</label>
+                <select class="form-input" id="vType">
+                    <option value="HEAVY_TRUCK">Heavy Truck</option>
+                    <option value="MINI_TRUCK">Mini Truck</option>
+                    <option value="CONTAINER">Container</option>
+                    <option value="TANKER">Tanker</option>
+                </select>
+            </div>
+            <div class="modal-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Capacity (Tons)</label>
+                    <input class="form-input" id="vCapacity" type="number" placeholder="e.g. 20"/>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Model Year</label>
+                    <input class="form-input" id="vYear" type="number" placeholder="e.g. 2022"/>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+                <label class="form-label">Manufacturer</label>
+                <input class="form-input" id="vMake" placeholder="e.g. Tata Motors, Ashok Leyland"/>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeRegisterModal()">Cancel</button>
+            <button class="btn-modal-submit" id="regVehicleBtnModal" onclick="submitRegisterVehicle()">
+                &#128663; Register
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="registerDriverModal" style="display:none;">
+    <div class="modal-box" style="max-width:480px;">
+        <div class="modal-header">
+            <h2>&#128100; Register New Driver</h2>
+            <button class="modal-close" onclick="closeRegisterDriverModal()">&#10005;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-error"   id="driverRegError"></div>
+            <div class="form-success" id="driverRegSuccess"></div>
+            <div class="form-group">
+                <label class="form-label">Full Name *</label>
+                <input class="form-input" id="drFullName" placeholder="e.g. Ramesh Kumar"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username *</label>
+                <input class="form-input" id="drUsername" placeholder="e.g. ramesh_driver"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email *</label>
+                <input class="form-input" type="email" id="drEmail" placeholder="driver@email.com"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input class="form-input" id="drPhone" placeholder="+91-XXXXXXXXXX"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password *</label>
+                <input class="form-input" type="password" id="drPassword" placeholder="Minimum 6 characters"/>
+            </div>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center;">
+                &#9432; Drivers cannot self-register. Only Admins can create driver accounts.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeRegisterDriverModal()">Cancel</button>
+            <button class="btn-modal-submit" id="registerDriverBtnModal" onclick="registerDriver()">
+                &#128100; Create Driver Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="assignDriverModal" style="display:none;">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header">
+            <h2>&#128100; Assign Driver to Vehicle</h2>
+            <button class="modal-close" onclick="closeAssignModal()">&#10005;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-error" id="assignError"></div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+                Vehicle: <strong id="assignVehicleReg" style="color:var(--accent-blue)">--</strong>
+            </p>
+            <div class="form-group">
+                <label class="form-label">Select Driver</label>
+                <select class="form-input" id="assignDriverSelect">
+                    <option value="">-- Select a driver --</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeAssignModal()">Cancel</button>
+            <button class="btn-modal-submit" id="assignSubmitBtn" onclick="submitAssignDriver()">
+                &#128100; Assign Driver
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="assignVehicleToDriverModal" style="display:none;">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header">
+            <h2>&#128663; Assign Vehicle to Driver</h2>
+            <button class="modal-close" onclick="closeAssignVehicleModal()">&#10005;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-error" id="vehicleAssignError"></div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+                Driver: <strong id="assignDriverName" style="color:#10b981">--</strong>
+            </p>
+            <div class="form-group">
+                <label class="form-label">Select Vehicle</label>
+                <select class="form-input" id="assignVehicleSelect">
+                    <option value="">-- Select a vehicle --</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeAssignVehicleModal()">Cancel</button>
+            <button class="btn-modal-submit" id="assignVehicleSubmitBtn"
+                    style="background:#10b981;color:#fff;"
+                    onclick="submitAssignVehicleToDriver()">
+                &#128663; Assign Vehicle
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/api-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/fleet.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>

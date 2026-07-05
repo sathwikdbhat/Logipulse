@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSST | Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        html, body { overflow: auto; background: var(--bg-primary); }
+
+        .analytics-layout {
+            margin-top: 56px;
+            padding: 24px 28px 60px;
+            max-width: 1500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ---- KPI Strip ---- */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .kpi-box:hover { border-color: var(--border-normal); }
+
+        .kpi-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .kpi-box.blue::before   { background: #4fc3f7; }
+        .kpi-box.green::before  { background: #10b981; }
+        .kpi-box.red::before    { background: #ef4444; }
+        .kpi-box.purple::before { background: #a78bfa; }
+        .kpi-box.yellow::before { background: #f59e0b; }
+        .kpi-box.teal::before   { background: #06b6d4; }
+
+        .kpi-icon { font-size: 22px; margin-bottom: 8px; }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .kpi-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .kpi-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-family: var(--font-mono);
+        }
+
+        /* ---- Charts Grid ---- */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .charts-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+
+        .chart-card-full {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 220px;
+        }
+
+        .chart-wrap-tall {
+            position: relative;
+            height: 280px;
+        }
+
+        /* ---- Heatmap ---- */
+        #heatmapContainer {
+            height: 380px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        /* ---- Driver Performance Table ---- */
+        .perf-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .perf-table th {
+            padding: 10px 14px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            text-align: left;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .perf-table td {
+            padding: 11px 14px;
+            font-size: 13px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .perf-table tr:last-child td { border-bottom: none; }
+        .perf-table tr:hover td { background: var(--bg-card-hover); }
+
+        .score-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .score-num {
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            width: 32px;
+            text-align: right;
+        }
+
+        /* ---- Route Corridor Table ---- */
+        .corridor-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* ---- Export button ---- */
+        .btn-export {
+            padding: 8px 18px;
+            background: rgba(79,195,247,0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(79,195,247,0.3);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font-main);
+        }
+
+        .btn-export:hover { background: rgba(79,195,247,0.2); }
+
+        /* ---- No data state ---- */
+        .no-data-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* ---- Insight chips ---- */
+        .insight-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .insight-chip {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+        }
+
+        .insight-chip.good   { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+        .insight-chip.warn   { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+        .insight-chip.danger { color: #ef4444; border-color: rgba(239,68,68,0.3);  background: rgba(239,68,68,0.08); }
+
+        @media (max-width: 1100px) {
+            .kpi-strip    { grid-template-columns: repeat(3,1fr); }
+            .charts-grid  { grid-template-columns: 1fr; }
+            .charts-grid-3 { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 700px) {
+            .kpi-strip    { grid-template-columns: repeat(2,1fr); }
+            .charts-grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="top-nav">
+    <a href="/index.html" class="nav-logo">
+        <svg width="32" height="32" viewBox="0 0 44 44" fill="none">
+            <path d="M8 12 L24 22 L8 32 Z" fill="rgba(79,195,247,0.2)" stroke="#4fc3f7" stroke-width="2"/>
+            <path d="M20 12 L36 22 L20 32 Z" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="2"/>
+            <circle cx="8" cy="12" r="2.5" fill="#4fc3f7"/>
+            <circle cx="8" cy="32" r="2.5" fill="#4fc3f7"/>
+            <circle cx="36" cy="22" r="2.5" fill="#10b981"/>
+        </svg>
+        <span class="nav-logo-text">VSST</span>
+    </a>
+    <div class="nav-tabs">
+        <a href="/index.html"     class="nav-tab">&#127968; Control Tower</a>
+        <a href="/shipments.html" class="nav-tab">&#128666; Shipments</a>
+        <a href="/fleet.html"     class="nav-tab">&#128663; Fleet</a>
+        <a href="/analytics.html" class="nav-tab active">&#128200; Analytics</a>
+    </div>
+    <div class="nav-right">
+        <div class="nav-user">
+            <span class="nav-user-avatar" id="navAvatar">A</span>
+            <span class="nav-user-name"   id="navName">Loading...</span>
+            <span class="nav-user-role"   id="navRole">--</span>
+        </div>
+        <button class="btn-nav-logout" onclick="apiLogout()">Logout</button>
+    </div>
+</nav>
+
+<div class="analytics-layout">
+
+    <div class="page-header" style="margin-bottom:22px;">
+        <div>
+            <div class="page-breadcrumb">INTELLIGENCE</div>
+            <h1 class="page-title">&#128200; Analytics Dashboard</h1>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <span id="lastUpdatedLabel" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+            <button class="btn-export" onclick="exportCSV()">&#8659; Export CSV</button>
+            <button class="btn-create" onclick="loadAllAnalytics()" style="padding:8px 18px;font-size:13px;">&#8635; Refresh</button>
+        </div>
+    </div>
+
+    <div class="kpi-strip" id="kpiStrip">
+        <div class="kpi-box blue">
+            <div class="kpi-icon">&#128666;</div>
+            <div class="kpi-value" id="kpiTotalShipments">--</div>
+            <div class="kpi-label">Total Shipments</div>
+            <div class="kpi-sub" id="kpiActiveShipments">-- active</div>
+        </div>
+        <div class="kpi-box green">
+            <div class="kpi-icon">&#9989;</div>
+            <div class="kpi-value" id="kpiOnTimeRate">--%</div>
+            <div class="kpi-label">On-Time Rate</div>
+            <div class="kpi-sub" id="kpiOnTimeSub">-- delivered</div>
+        </div>
+        <div class="kpi-box red">
+            <div class="kpi-icon">&#9888;</div>
+            <div class="kpi-value" id="kpiDelayRate">--%</div>
+            <div class="kpi-label">Delay Rate</div>
+            <div class="kpi-sub" id="kpiDelayedCount">-- shipments</div>
+        </div>
+        <div class="kpi-box yellow">
+            <div class="kpi-icon">&#128204;</div>
+            <div class="kpi-value" id="kpiTotalDistance">-- km</div>
+            <div class="kpi-label">Total Distance</div>
+            <div class="kpi-sub">all routes combined</div>
+        </div>
+        <div class="kpi-box purple">
+            <div class="kpi-icon">&#128230;</div>
+            <div class="kpi-value" id="kpiTotalCargo">-- t</div>
+            <div class="kpi-label">Total Cargo</div>
+            <div class="kpi-sub">tonnes moved</div>
+        </div>
+        <div class="kpi-box teal">
+            <div class="kpi-icon">&#128663;</div>
+            <div class="kpi-value" id="kpiActiveVehicles">--</div>
+            <div class="kpi-label">Active Vehicles</div>
+            <div class="kpi-sub" id="kpiVehicleSub">-- available</div>
+        </div>
+    </div>
+
+    <div class="chart-card-full" id="insightsCard">
+        <div class="chart-title">&#129302; AI Insights</div>
+        <div class="insight-row" id="insightsRow">
+            <span style="color:var(--text-muted);font-size:13px;">Loading insights...</span>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>&#128257; Shipment Status Distribution</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="statusDonut"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>&#128200; On-Time Performance (Last 7 days simulated)</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="onTimeTrend"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid-3">
+
+        <div class="chart-card">
+            <div class="chart-title">&#128230; Cargo Type Distribution</div>
+            <div class="chart-wrap">
+                <canvas id="cargoChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">&#9888; Disruption Timeline</div>
+            <div class="chart-wrap">
+                <canvas id="disruptionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">&#128204; Distance per Corridor</div>
+            <div class="chart-wrap">
+                <canvas id="distanceChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="chart-card-full">
+        <div class="chart-title">
+            <span>&#128293; Disruption Heatmap — India</span>
+            <span style="font-size:11px;color:var(--text-muted);text-transform:none;letter-spacing:0;font-weight:400;">Circles indicate disruption frequency at shipment locations</span>
+        </div>
+        <div id="heatmapContainer"></div>
+    </div>
+
+    <div class="charts-grid">
+
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>&#128100; Driver Performance</span>
+            </div>
+            <div id="driverPerfTable"><div class="no-data-state">Loading...</div></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>&#128204; Route Corridor Performance</span>
+            </div>
+            <div id="corridorTable"><div class="no-data-state">Loading...</div></div>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/api-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>

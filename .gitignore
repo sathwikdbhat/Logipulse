@@ -1,0 +1,21 @@
+# Compiled output
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local H2 database files (unused now, but ignored just in case)
+data/
+
+# Environment files
+.env

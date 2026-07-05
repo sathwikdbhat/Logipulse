@@ -18,7 +18,7 @@ public class RouteGeometryService {
 
     // Get a FREE key from https://openrouteservice.org/dev/#/signup
     private static final String ORS_API_KEY =
-            "PASTE_YOUR_NEW_ORS_KEY_HERE";
+            "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjM2OTlkMDg4MmMzYzQyNWQ5M2NkOWFjMzMxZmMyMzhkIiwiaCI6Im11cm11cjY0In0=";
 
     // Use driving-car — driving-hgv (heavy goods) returned 406 for many India routes
     private static final String ORS_URL =
